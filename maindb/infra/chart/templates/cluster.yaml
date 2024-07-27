@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: maindb-cluster-production
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: production
+  source:
+    repoURL: https://github.com/chestercodes/hl2.git
+    targetRevision: "{{ .Values.revision_production }}"
+    path: maindb/db/cluster
+    helm:
+      valueFiles:
+        #- values.all.yaml
+        - values.base.yaml
+        - values.persistence.yaml
+        - values.{{ .Values.cluster_name }}.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+    - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: maindb-cluster-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: staging
+  source:
+    repoURL: https://github.com/chestercodes/hl2.git
+    targetRevision: "{{ .Values.revision_staging }}"
+    path: maindb/db/cluster
+    helm:
+      valueFiles:
+        #- values.all.yaml
+        - values.base.yaml
+        - values.{{ .Values.cluster_name }}.yaml
+        - values.staging.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+    - CreateNamespace=true

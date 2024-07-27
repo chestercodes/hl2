@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: github
+spec:
+  service:
+    ports:
+      - port: 12000
+        targetPort: 12000
+  github:
+    hl2:
+      owner: chestercodes
+      repository: hl2
+      webhook:
+        endpoint: /hl2
+        port: "12000"
+        method: POST
+        url: https://github-{{ .Values.cluster_name }}.{{ .Values.top_level_domain }}
+      events:
+        - "*"
+      apiToken:
+        name: github-creds
+        key: token
+      webhookSecret:
+        name: github-creds
+        key: webhookSecret
+      active: true
+      contentType: json
+    hl2-ping:
+      owner: chestercodes
+      repository: hl2-ping
+      webhook:
+        endpoint: /hl2-ping
+        port: "12000"
+        method: POST
+        url: https://github-{{ .Values.cluster_name }}.{{ .Values.top_level_domain }}
+      events:
+        - "*"
+      apiToken:
+        name: github-creds
+        key: token
+      webhookSecret:
+        name: github-creds
+        key: webhookSecret
+      active: true
+      contentType: json

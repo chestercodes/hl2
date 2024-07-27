@@ -1,0 +1,108 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: "{{ .Release.Name }}-dashy"
+  namespace: {{ .Release.Namespace }}
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`dashboard.{{ .Values.private_top_level_domain }}`)
+      priority: 10
+      services:
+        - name: "{{ .Release.Name }}-dashy"
+          port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Release.Name }}-dashy"
+  labels:
+    app.kubernetes.io/name: dashy
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: dashy
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Release.Name }}-dashy"
+  labels:
+    app.kubernetes.io/name: dashy
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dashy
+      app.kubernetes.io/instance: "{{ .Release.Name }}"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dashy
+        app.kubernetes.io/instance: "{{ .Release.Name }}"
+    spec:
+      #serviceAccountName: "{{ .Release.Name }}-dashy"
+      securityContext:
+        {}
+      containers:
+        - name: dashy
+          securityContext:
+            {}
+          image: "lissy93/dashy:release-3.1.1"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "8080" 
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /
+              port: 8080
+            failureThreshold: 3
+            timeoutSeconds: 10
+            periodSeconds: 90
+            initialDelaySeconds: 40
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            failureThreshold: 3
+            timeoutSeconds: 10
+            periodSeconds: 90
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            failureThreshold: 3
+            timeoutSeconds: 10
+            periodSeconds: 90
+          # resources:
+          #   {}
+          volumeMounts:            
+            - mountPath: /app/user-data/conf.yml
+              subPath: conf.yml
+              name: "{{ .Release.Name }}-dashy-conf"
+      volumes:
+        - name: "{{ .Release.Name }}-dashy-conf"
+          configMap:
+            name: "{{ .Release.Name }}-dashy-conf"
+            items:
+              - key: conf
+                path: conf.yml

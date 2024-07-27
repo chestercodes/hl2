@@ -1,0 +1,72 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: aspire-dashboard-{{ .Release.Namespace }}-ingress
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`aspire-dashboard-{{ .Release.Namespace }}.{{ .Values.private_top_level_domain }}`)
+      priority: 10
+      services:
+        - name: "aspire-dashboard-service"
+          port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aspire-dashboard-service
+spec:
+ ports:
+ - protocol: TCP
+   port: 80
+   targetPort: 18888
+ selector:
+   app: aspire-dashboard
+ #type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otlp
+spec:
+ ports:
+ - protocol: TCP
+   port: 4317
+   targetPort: 18889
+ selector:
+   app: aspire-dashboard
+ #type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aspire-dashboard-deployment
+  labels:
+    app: aspire-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aspire-dashboard
+  template:
+    metadata:
+      labels:
+        app: aspire-dashboard
+    spec:
+      containers:
+      - name: aspire-dashboard
+        image: mcr.microsoft.com/dotnet/aspire-dashboard:8.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 18888
+        - containerPort: 18889
+        env:
+        # - name: PGADMIN_DEFAULT_EMAIL
+        #   value: user@domain.com
+        - name: DASHBOARD__FRONTEND__BROWSERTOKEN
+          valueFrom:
+            secretKeyRef:
+              name: aspire-dashboard
+              key: token

@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: deploy-common
+spec:
+  serviceAccountName: workflow-sa
+  templates:
+
+    - name: clone-repo-and-run-pwsh-script
+      inputs:
+        parameters:
+          - name: args_json
+          - name: code_repo_name
+          - name: script_path
+
+      container:
+        # lock to digest to speed up runs, need to periodically update
+        image: mcr.microsoft.com/dotnet/sdk@sha256:4b684e6c74ab8dff26ac54c79d8242b1dd05aba06c367de2b583bad79fd6399b
+        command:
+          - "pwsh"
+          - "-c"
+          - |
+            write-host "Inputs are: {{`{{inputs.parameters.args_json}}`}} {{`{{inputs.parameters.code_repo_name}}`}} {{`{{inputs.parameters.script_path}}`}}"
+            $gitToken = $env:GIT_TOKEN
+            git clone "https://$gitToken@github.com/chestercodes/{{`{{inputs.parameters.code_repo_name}}`}}" therepo
+            cd therepo
+            pwsh -file {{`{{inputs.parameters.script_path}}`}} -argsJson "{{`{{inputs.parameters.args_json}}`}}"
+        env:
+          - name: GIT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: github-creds
+                key: token
+
+    - name: wait-completion
+      inputs:
+      parameters: []
+      suspend: {}
+
+

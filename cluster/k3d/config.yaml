@@ -1,0 +1,38 @@
+apiVersion: k3d.io/v1alpha4
+kind: Simple
+metadata:
+  name: laptop
+servers: 1
+agents: 3
+volumes:
+  - volume: $HOST_DIR/agents/database:/database
+    nodeFilters:
+      - agent:0
+ports:
+  - port: 80:80
+    nodeFilters:
+      - loadbalancer
+  - port: 443:443
+    nodeFilters:
+      - loadbalancer
+options:
+  k3s:
+    extraArgs: # additional arguments passed to the `k3s server|agent` command; same as `--k3s-arg`
+      - arg: "--kubelet-arg=eviction-hard=imagefs.available<1%,nodefs.available<1%"
+        nodeFilters:
+          - agent:*
+          - server:*
+      - arg: "--kubelet-arg=eviction-minimum-reclaim=imagefs.available=1%,nodefs.available=1%"
+        nodeFilters:
+          - agent:*
+          - server:*
+      - arg: "--node-name=database"
+        nodeFilters:
+          - agent:0
+      - arg: "--node-taint=node=database:NoSchedule"
+        nodeFilters:
+          - agent:0
+    nodeLabels:
+      - label: nodename=database
+        nodeFilters:
+          - agent:0

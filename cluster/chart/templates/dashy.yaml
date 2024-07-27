@@ -1,0 +1,26 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: "dashy"
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: production
+    server: https://kubernetes.default.svc
+  project: production
+  source:
+    path: cluster/dashy
+    repoURL: https://github.com/chestercodes/hl2.git
+    helm:
+      valueFiles:
+      - values.{{ .Values.cluster_name }}.yaml
+    targetRevision: HEAD
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+    - CreateNamespace=true

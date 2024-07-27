@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: run-tag-triggered-script
+spec:
+  serviceAccountName: workflow-sa
+  entrypoint: run
+  templates:
+    - name: run
+      inputs:
+        parameters:
+          - name: tag_value
+          - name: code_repo_name
+          - name: script_path
+      steps:
+
+      - - name: wait-completion
+          templateRef:
+            name: deploy-common
+            template: wait-completion
+          arguments:
+            parameters: []
+
+      - - name: clone-repo-and-run-pwsh-script
+          templateRef:
+            name: deploy-common
+            template: clone-repo-and-run-pwsh-script
+          arguments:
+            parameters:
+              - name: args_json
+                value: "{ 'tagValue': '{{`{{inputs.parameters.tag_value}}`}}' }"
+              - name: code_repo_name
+                value: "{{`{{inputs.parameters.code_repo_name}}`}}"
+              - name: script_path
+                value: "{{`{{inputs.parameters.script_path}}`}}"

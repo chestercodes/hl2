@@ -1,0 +1,21 @@
+createStorage: false
+
+postgresql:
+  image:
+    registry: docker.io
+    repository: bitnami/postgresql
+    tag: 14.5.0-debian-11-r35
+
+  auth:
+    enablePostgresUser: true
+    database: "postgres"
+    existingSecret: "maindb-postgresql"
+    secretKeys:
+      adminPasswordKey: postgres-password
+
+  primary:
+    tolerations:
+      - key: "node"
+        operator: "Equal"
+        value: "database"
+        effect: "NoSchedule"
